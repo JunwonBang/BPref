@@ -1,16 +1,16 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import gym
+import gymnasium as gym
 import os
 import random
 import math
-import dmc2gym
-import metaworld
-import metaworld.envs.mujoco.env_dict as _env_dict
+#import dmc2gym
+# import metaworld
+# import metaworld.envs.mujoco.env_dict as _env_dict
 
 from collections import deque
-from gym.wrappers.time_limit import TimeLimit
+from gymnasium.wrappers.time_limit import TimeLimit
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from collections import deque
 from skimage.util.shape import view_as_windows
@@ -26,11 +26,8 @@ def make_env(cfg):
         domain_name = cfg.env.split('_')[0]
         task_name = '_'.join(cfg.env.split('_')[1:])
 
-    env = dmc2gym.make(domain_name=domain_name,
-                       task_name=task_name,
-                       seed=cfg.seed,
-                       visualize_reward=False)
-    env.seed(cfg.seed)
+    env = gym.make(cfg.env)
+    env.reset(seed=cfg.seed)
     assert env.action_space.low.min() >= -1
     assert env.action_space.high.max() <= 1
 
