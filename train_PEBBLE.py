@@ -84,7 +84,7 @@ class Workspace(object):
         success_rate = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            obs = self.env.reset()
+            obs, info = self.env.reset()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -200,7 +200,7 @@ class Workspace(object):
                     self.logger.log('train/true_episode_success', episode_success,
                         self.step)
                 
-                obs = self.env.reset()
+                obs, info = self.env.reset()
                 self.agent.reset()
                 done = False
                 episode_reward = 0

@@ -3,6 +3,7 @@ from gym.spaces import Box
 
 from rlkit.envs.proxy_env import ProxyEnv
 
+from gymnasium.utils.step_api_compatibility import convert_to_done_step_api
 
 class NormalizedBoxEnv(ProxyEnv):
     """
@@ -50,7 +51,7 @@ class NormalizedBoxEnv(ProxyEnv):
         scaled_action = lb + (action + 1.) * 0.5 * (ub - lb)
         scaled_action = np.clip(scaled_action, lb, ub)
 
-        wrapped_step = self._wrapped_env.step(scaled_action)
+        wrapped_step = convert_to_done_step_api(self._wrapped_env.step(scaled_action))
         next_obs, reward, done, info = wrapped_step
         if self._should_normalize:
             next_obs = self._apply_normalize_obs(next_obs)
