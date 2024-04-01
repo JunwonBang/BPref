@@ -545,8 +545,8 @@ class RewardModel:
     def uniform_sampling(self):
         # get queries
         sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
-            mb_size=self.mb_size)
-            
+            mb_size=self.mb_size)     
+           
         # get labels
         sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
             sa_t_1, sa_t_2, r_t_1, r_t_2)
@@ -597,6 +597,11 @@ class RewardModel:
             self.put_queries(sa_t_1, sa_t_2, labels)
         
         return len(labels)
+
+    def uniform_aligned_sampling(self):
+        # get queries
+        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
+            mb_size=self.mb_size)
     
     def train_reward(self):
         ensemble_losses = [[] for _ in range(self.de)]

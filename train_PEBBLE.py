@@ -21,6 +21,7 @@ import hydra
 
 from gymnasium.wrappers.flatten_observation import FlattenObservation
 from gymnasium.utils.step_api_compatibility import convert_to_done_step_api
+
 class Workspace(object):
     def __init__(self, cfg):
         self.work_dir = os.getcwd()
@@ -35,14 +36,14 @@ class Workspace(object):
 
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
-        self.log_success = False
+        self.log_success = True
         
         # make env
         if 'metaworld' in cfg.env:
             self.env = utils.make_metaworld_env(cfg)
             self.log_success = True
         else:
-            self.env = utils.make_env(cfg)
+            self.env, self.test_env = utils.make_env(cfg)
         
         self.env = FlattenObservation(self.env)
         cfg.agent.params.obs_dim = self.env.observation_space.shape[0]
@@ -87,7 +88,7 @@ class Workspace(object):
         success_rate = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            obs, info = self.env.reset()
+            obs, info = self.test_env.reset()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -98,7 +99,7 @@ class Workspace(object):
             while not done:
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
-                obs, reward, done, extra = self.env.step(action)
+                obs, reward, done, extra = convert_to_done_step_api(self.test_env.step(action))
                 
                 episode_reward += reward
                 true_episode_reward += reward
