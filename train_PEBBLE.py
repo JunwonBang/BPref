@@ -46,6 +46,7 @@ class Workspace(object):
             self.env, self.test_env = utils.make_env(cfg)
         
         self.env = FlattenObservation(self.env)
+        self.test_env = FlattenObservation(self.test_env)
         cfg.agent.params.obs_dim = self.env.observation_space.shape[0]
         cfg.agent.params.action_dim = self.env.action_space.shape[0]
         cfg.agent.params.action_range = [
@@ -89,6 +90,7 @@ class Workspace(object):
         
         for episode in range(self.cfg.num_eval_episodes):
             obs, info = self.test_env.reset()
+            print(obs)
             self.agent.reset()
             done = False
             episode_reward = 0
