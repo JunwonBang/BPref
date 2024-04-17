@@ -43,10 +43,10 @@ class Workspace(object):
             self.env = utils.make_metaworld_env(cfg)
             self.log_success = True
         else:
-            self.env, self.test_env = utils.make_env(cfg)
+            self.env, self.env_eval = utils.make_env(cfg)
         
         self.env = FlattenObservation(self.env)
-        self.test_env = FlattenObservation(self.test_env)
+        self.env_eval = FlattenObservation(self.env_eval)
         cfg.agent.params.obs_dim = self.env.observation_space.shape[0]
         cfg.agent.params.action_dim = self.env.action_space.shape[0]
         cfg.agent.params.action_range = [
@@ -89,8 +89,7 @@ class Workspace(object):
         success_rate = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            obs, info = self.test_env.reset()
-            print(obs)
+            obs, info = self.env_eval.reset()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -101,7 +100,7 @@ class Workspace(object):
             while not done:
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
-                obs, reward, done, extra = convert_to_done_step_api(self.test_env.step(action))
+                obs, reward, done, extra = convert_to_done_step_api(self.env_eval.step(action))
                 
                 episode_reward += reward
                 true_episode_reward += reward

@@ -38,7 +38,7 @@ def make_env(cfg):
                 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, G, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
     
-    huge_2_1_test = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    huge_2_1_eval = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                      [1, 0, R, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -55,12 +55,12 @@ def make_env(cfg):
                      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
     
     env = gym.make(cfg.env, maze_map=huge_2_1)
-    test_env = gym.make(cfg.env, maze_map=huge_2_1_test)
+    env_eval = gym.make(cfg.env, maze_map=huge_2_1_eval)
     env.reset(seed=cfg.seed)
     assert env.action_space.low.min() >= -1
     assert env.action_space.high.max() <= 1
 
-    return env, test_env
+    return env, env_eval
 
 def ppo_make_env(env_id, seed):
     """Helper function to create dm_control environment"""

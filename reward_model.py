@@ -598,7 +598,7 @@ class RewardModel:
         
         return len(labels)
 
-    def uniform_aligned_sampling(self):
+    def goal_aligned_sampling(self):
         # get queries
         sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
             mb_size=self.mb_size)
