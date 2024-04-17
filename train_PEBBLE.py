@@ -85,6 +85,7 @@ class Workspace(object):
         
         for episode in range(self.cfg.num_eval_episodes):
             obs, info = self.env.reset()
+            self.env.goal = np.array([0.6, 0.7, 0.07])
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -144,6 +145,10 @@ class Workspace(object):
                 labeled_queries = self.reward_model.kcenter_disagree_sampling()
             elif self.cfg.feed_type == 5:
                 labeled_queries = self.reward_model.kcenter_entropy_sampling()
+            elif self.cfg.feed_type == 6:
+                labeled_queries = self.reward_model.entropy_reverse_sampling()
+            elif self.cfg.feed_type == 7:
+                labeled_queries = self.reward_model.goal_anti_aligned_sampling()
             else:
                 raise NotImplementedError
         
@@ -201,6 +206,12 @@ class Workspace(object):
                         self.step)
                 
                 obs, info = self.env.reset()
+
+                if int(time.strftime('%S'))%2 == 0:
+                    self.env.goal = np.array([-0.3, 0.5, 0.07])
+                else:
+                    self.env.goal = np.array([0.6, 0.7, 0.07])
+                    
                 self.agent.reset()
                 done = False
                 episode_reward = 0
@@ -237,7 +248,7 @@ class Workspace(object):
                 new_margin = np.mean(avg_train_true_return) * (self.cfg.segment / self.env._max_episode_steps)
                 self.reward_model.set_teacher_thres_skip(new_margin)
                 self.reward_model.set_teacher_thres_equal(new_margin)
-                
+
                 # first learn reward
                 self.learn_reward(first_flag=1)
                 
@@ -303,7 +314,7 @@ class Workspace(object):
                 episode_success = max(episode_success, extra['success'])
                 
             # adding data to the reward training data
-            self.reward_model.add_data(obs, action, reward, done)
+            self.reward_model.add_data(obs, action, reward, done, self.env.goal)
             self.replay_buffer.add(
                 obs, action, reward_hat, 
                 next_obs, done, done_no_max)

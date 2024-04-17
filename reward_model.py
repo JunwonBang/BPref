@@ -114,6 +114,7 @@ class RewardModel:
         self.construct_ensemble()
         self.inputs = []
         self.targets = []
+        self.goals = []
         self.raw_actions = []
         self.img_inputs = []
         self.mb_size = mb_size
@@ -165,34 +166,43 @@ class RewardModel:
             
         self.opt = torch.optim.Adam(self.paramlst, lr = self.lr)
             
-    def add_data(self, obs, act, rew, done):
+    def add_data(self, obs, act, rew, done, goal):
         sa_t = np.concatenate([obs, act], axis=-1)
         r_t = rew
+        _goal = goal
         
         flat_input = sa_t.reshape(1, self.da+self.ds)
         r_t = np.array(r_t)
         flat_target = r_t.reshape(1, 1)
+        _goal = np.array(_goal)
+        flat_goal = _goal.reshape(1, 3)
 
         init_data = len(self.inputs) == 0
         if init_data:
             self.inputs.append(flat_input)
             self.targets.append(flat_target)
+            self.goals.append(flat_goal)
         elif done:
             self.inputs[-1] = np.concatenate([self.inputs[-1], flat_input])
             self.targets[-1] = np.concatenate([self.targets[-1], flat_target])
+            self.goals[-1] = np.concatenate([self.goals[-1], flat_goal])
             # FIFO
             if len(self.inputs) > self.max_size:
                 self.inputs = self.inputs[1:]
                 self.targets = self.targets[1:]
+                self.goals = self.goals[1:]
             self.inputs.append([])
             self.targets.append([])
+            self.goals.append([])
         else:
             if len(self.inputs[-1]) == 0:
                 self.inputs[-1] = flat_input
                 self.targets[-1] = flat_target
+                self.goals[-1] = flat_goal
             else:
                 self.inputs[-1] = np.concatenate([self.inputs[-1], flat_input])
                 self.targets[-1] = np.concatenate([self.targets[-1], flat_target])
+                self.goals[-1] = np.concatenate([self.goals[-1], flat_goal])
                 
     def add_data_batch(self, obses, rewards):
         num_env = obses.shape[0]
@@ -344,6 +354,61 @@ class RewardModel:
         sa_t_2 = np.take(sa_t_2, time_index_2, axis=0) # Batch x size_seg x dim of s&a
         r_t_2 = np.take(r_t_2, time_index_2, axis=0) # Batch x size_seg x 1
                 
+        return sa_t_1, sa_t_2, r_t_1, r_t_2
+    
+    def get_aligned_queries(self, mb_size=20):
+        len_traj, max_len = len(self.inputs[0]), len(self.inputs)
+        img_t_1, img_t_2 = None, None
+        
+        if len(self.inputs[-1]) < len_traj:
+            max_len = max_len - 1
+        
+        # get train traj
+        train_inputs = np.array(self.inputs[:max_len])
+        train_targets = np.array(self.targets[:max_len])
+        train_goals = np.array(self.goals[:max_len])
+   
+        train_inputs_1 = []
+        train_targets_1 = []
+        train_inputs_2 = []
+        train_targets_2 = []
+        for i in range(max_len):
+            if train_goals[i][0][0] == -0.3:
+                train_inputs_1.append(train_inputs[i])
+                train_targets_1.append(train_targets[i])
+            else:
+                train_inputs_2.append(train_inputs[i])
+                train_targets_2.append(train_targets[i])
+
+        train_inputs_1 = np.array(train_inputs_1)
+        train_targets_1 = np.array(train_targets_1)
+        train_inputs_2 = np.array(train_inputs_2)
+        train_targets_2 = np.array(train_targets_2)
+
+        batch_index_2 = np.random.choice(len(train_inputs_2), size=mb_size, replace=True)
+        sa_t_2 = train_inputs_2[batch_index_2] # Batch x T x dim of s&a
+        r_t_2 = train_targets_2[batch_index_2] # Batch x T x 1
+        
+        batch_index_1 = np.random.choice(len(train_inputs_1), size=mb_size, replace=True)
+        sa_t_1 = train_inputs_1[batch_index_1] # Batch x T x dim of s&a
+        r_t_1 = train_targets_1[batch_index_1] # Batch x T x 1
+                
+        sa_t_1 = sa_t_1.reshape(-1, sa_t_1.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_1 = r_t_1.reshape(-1, r_t_1.shape[-1]) # (Batch x T) x 1
+        sa_t_2 = sa_t_2.reshape(-1, sa_t_2.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_2 = r_t_2.reshape(-1, r_t_2.shape[-1]) # (Batch x T) x 1
+
+        # Generate time index 
+        time_index = np.array([list(range(i*len_traj,
+                                            i*len_traj+self.size_segment)) for i in range(mb_size)])
+        time_index_2 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        time_index_1 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        
+        sa_t_1 = np.take(sa_t_1, time_index_1, axis=0) # Batch x size_seg x dim of s&a
+        r_t_1 = np.take(r_t_1, time_index_1, axis=0) # Batch x size_seg x 1
+        sa_t_2 = np.take(sa_t_2, time_index_2, axis=0) # Batch x size_seg x dim of s&a
+        r_t_2 = np.take(r_t_2, time_index_2, axis=0) # Batch x size_seg x 1
+
         return sa_t_1, sa_t_2, r_t_1, r_t_2
 
     def put_queries(self, sa_t_1, sa_t_2, labels):
@@ -546,7 +611,7 @@ class RewardModel:
         # get queries
         sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
             mb_size=self.mb_size)
-            
+
         # get labels
         sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
             sa_t_1, sa_t_2, r_t_1, r_t_2)
@@ -597,6 +662,45 @@ class RewardModel:
             self.put_queries(sa_t_1, sa_t_2, labels)
         
         return len(labels)
+    
+    def entropy_reverse_sampling(self):
+
+        # get queries
+        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
+            mb_size=self.mb_size*self.large_batch)
+        
+        # get final queries based on uncertainty
+        entropy, _ = self.get_entropy(sa_t_1, sa_t_2)
+        
+        top_k_index = (entropy).argsort()[:self.mb_size]
+        r_t_1, sa_t_1 = r_t_1[top_k_index], sa_t_1[top_k_index]
+        r_t_2, sa_t_2 = r_t_2[top_k_index], sa_t_2[top_k_index]
+        
+        # get labels
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(    
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+    
+    def goal_anti_aligned_sampling(self):
+        # get queries
+        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_aligned_queries(
+            mb_size=self.mb_size)
+
+        # get labels
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+        
+        
+
     
     def train_reward(self):
         ensemble_losses = [[] for _ in range(self.de)]
