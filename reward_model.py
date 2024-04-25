@@ -138,6 +138,10 @@ class RewardModel:
         
         self.label_margin = label_margin
         self.label_target = 1 - 2*self.label_margin
+
+        # successed trajectories
+        self.cnt_2 = 0
+        self.cnt_1 = 0
     
     def softXEnt_loss(self, input, target):
         logprobs = torch.nn.functional.log_softmax (input, dim = 1)
@@ -319,9 +323,6 @@ class RewardModel:
         # get train traj
         train_inputs = np.array(self.inputs[:max_len])
         train_targets = np.array(self.targets[:max_len])
-   
-        print(train_inputs.shape)
-        exit()
 
         batch_index_2 = np.random.choice(max_len, size=mb_size, replace=True)
         sa_t_2 = train_inputs[batch_index_2] # Batch x T x dim of s&a
@@ -349,7 +350,7 @@ class RewardModel:
                 
         return sa_t_1, sa_t_2, r_t_1, r_t_2
 
-    def get_aligned_queries(self, mb_size=20):
+    def get_aligned_2_queries(self, mb_size=20):
         len_traj, max_len = len(self.inputs[0]), len(self.inputs)
         img_t_1, img_t_2 = None, None
         
@@ -360,15 +361,205 @@ class RewardModel:
         train_inputs = np.array(self.inputs[:max_len])
         train_targets = np.array(self.targets[:max_len])
 
-        
+        train_inputs_1 = []
+        train_targets_1 = []
+        train_inputs_2 = []
+        train_targets_2 = []
 
-        batch_index_2 = np.random.choice(max_len, size=mb_size, replace=True)
-        sa_t_2 = train_inputs[batch_index_2] # Batch x T x dim of s&a
-        r_t_2 = train_targets[batch_index_2] # Batch x T x 1
+        for i in range(max_len):
+            if train_inputs[i][0][2] < 0:
+                train_inputs_1.append(train_inputs[i])
+                train_targets_1.append(train_targets[i])
+            else:
+                train_inputs_2.append(train_inputs[i])
+                train_targets_2.append(train_targets[i])
+
+        train_inputs_1 = np.array(train_inputs_1)
+        train_targets_1 = np.array(train_targets_1)
+        train_inputs_2 = np.array(train_inputs_2)
+        train_targets_2 = np.array(train_targets_2)
+
+        batch_index_2 = np.random.choice(len(train_inputs_2), size=mb_size, replace=True)
+        sa_t_2 = train_inputs_2[batch_index_2] # Batch x T x dim of s&a
+        r_t_2 = train_targets_2[batch_index_2] # Batch x T x 1
+
+        batch_index_1 = np.random.choice(len(train_inputs_2), size=mb_size, replace=True)
+        sa_t_1 = train_inputs_2[batch_index_1] # Batch x T x dim of s&a
+        r_t_1 = train_targets_2[batch_index_1] # Batch x T x 1
+                
+        sa_t_1 = sa_t_1.reshape(-1, sa_t_1.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_1 = r_t_1.reshape(-1, r_t_1.shape[-1]) # (Batch x T) x 1
+        sa_t_2 = sa_t_2.reshape(-1, sa_t_2.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_2 = r_t_2.reshape(-1, r_t_2.shape[-1]) # (Batch x T) x 1
+
+        # Generate time index 
+        time_index = np.array([list(range(i*len_traj,
+                                            i*len_traj+self.size_segment)) for i in range(mb_size)])
+        time_index_2 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        time_index_1 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
         
-        batch_index_1 = np.random.choice(max_len, size=mb_size, replace=True)
-        sa_t_1 = train_inputs[batch_index_1] # Batch x T x dim of s&a
-        r_t_1 = train_targets[batch_index_1] # Batch x T x 1
+        sa_t_1 = np.take(sa_t_1, time_index_1, axis=0) # Batch x size_seg x dim of s&a
+        r_t_1 = np.take(r_t_1, time_index_1, axis=0) # Batch x size_seg x 1
+        sa_t_2 = np.take(sa_t_2, time_index_2, axis=0) # Batch x size_seg x dim of s&a
+        r_t_2 = np.take(r_t_2, time_index_2, axis=0) # Batch x size_seg x 1
+                
+        return sa_t_1, sa_t_2, r_t_1, r_t_2
+
+    def get_aligned_1_queries(self, mb_size=20):
+        len_traj, max_len = len(self.inputs[0]), len(self.inputs)
+        img_t_1, img_t_2 = None, None
+        
+        if len(self.inputs[-1]) < len_traj:
+            max_len = max_len - 1
+        
+        # get train traj
+        train_inputs = np.array(self.inputs[:max_len])
+        train_targets = np.array(self.targets[:max_len])
+
+        train_inputs_1 = []
+        train_targets_1 = []
+        train_inputs_2 = []
+        train_targets_2 = []
+
+        for i in range(max_len):
+            if train_inputs[i][0][2] < 0:
+                train_inputs_1.append(train_inputs[i])
+                train_targets_1.append(train_targets[i])
+            else:
+                train_inputs_2.append(train_inputs[i])
+                train_targets_2.append(train_targets[i])
+
+        train_inputs_1 = np.array(train_inputs_1)
+        train_targets_1 = np.array(train_targets_1)
+        train_inputs_2 = np.array(train_inputs_2)
+        train_targets_2 = np.array(train_targets_2)
+
+        batch_index_2 = np.random.choice(len(train_inputs_1), size=mb_size, replace=True)
+        sa_t_2 = train_inputs_1[batch_index_2] # Batch x T x dim of s&a
+        r_t_2 = train_targets_1[batch_index_2] # Batch x T x 1
+        
+        batch_index_1 = np.random.choice(len(train_inputs_1), size=mb_size, replace=True)
+        sa_t_1 = train_inputs_1[batch_index_1] # Batch x T x dim of s&a
+        r_t_1 = train_targets_1[batch_index_1] # Batch x T x 1
+                
+        sa_t_1 = sa_t_1.reshape(-1, sa_t_1.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_1 = r_t_1.reshape(-1, r_t_1.shape[-1]) # (Batch x T) x 1
+        sa_t_2 = sa_t_2.reshape(-1, sa_t_2.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_2 = r_t_2.reshape(-1, r_t_2.shape[-1]) # (Batch x T) x 1
+
+        # Generate time index 
+        time_index = np.array([list(range(i*len_traj,
+                                            i*len_traj+self.size_segment)) for i in range(mb_size)])
+        time_index_2 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        time_index_1 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        
+        sa_t_1 = np.take(sa_t_1, time_index_1, axis=0) # Batch x size_seg x dim of s&a
+        r_t_1 = np.take(r_t_1, time_index_1, axis=0) # Batch x size_seg x 1
+        sa_t_2 = np.take(sa_t_2, time_index_2, axis=0) # Batch x size_seg x dim of s&a
+        r_t_2 = np.take(r_t_2, time_index_2, axis=0) # Batch x size_seg x 1
+                
+        return sa_t_1, sa_t_2, r_t_1, r_t_2
+
+    def get_aligned_2_queries_buffer_update(self, mb_size=20):
+        len_traj, max_len = len(self.inputs[0]), len(self.inputs)
+        img_t_1, img_t_2 = None, None
+        
+        if len(self.inputs[-1]) < len_traj:
+            max_len = max_len - 1
+        
+        # get train traj
+        train_inputs = np.array(self.inputs[:max_len])
+        train_targets = np.array(self.targets[:max_len])
+
+        train_inputs_1 = []
+        train_targets_1 = []
+        train_inputs_2 = []
+        train_targets_2 = []
+
+        for i in range(max_len):
+            if train_inputs[i][0][2] < 0:
+                train_inputs_1.append(train_inputs[i])
+                train_targets_1.append(train_targets[i])
+            else:
+                train_inputs_2.append(train_inputs[i])
+                train_targets_2.append(train_targets[i])
+
+        train_inputs_1 = np.array(train_inputs_1)
+        train_targets_1 = np.array(train_targets_1)
+        train_inputs_2 = np.array(train_inputs_2)
+        train_targets_2 = np.array(train_targets_2)
+
+        if self.cnt_2 == 0:
+            batch_index_2 = np.random.choice(len(train_inputs_2), size=mb_size, replace=True)
+            sa_t_2 = train_inputs_2[batch_index_2] # Batch x T x dim of s&a
+            r_t_2 = train_targets_2[batch_index_2] # Batch x T x 1
+            self.cnt_2 = -1
+        else:
+            sa_t_2 = self.succ_traj[:25]
+            r_t_2 = self.succ_reward[:25]
+
+        batch_index_1 = np.random.choice(len(train_inputs_2), size=mb_size, replace=True)
+        sa_t_1 = train_inputs_2[batch_index_1] # Batch x T x dim of s&a
+        r_t_1 = train_targets_2[batch_index_1] # Batch x T x 1
+                
+        sa_t_1 = sa_t_1.reshape(-1, sa_t_1.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_1 = r_t_1.reshape(-1, r_t_1.shape[-1]) # (Batch x T) x 1
+        sa_t_2 = sa_t_2.reshape(-1, sa_t_2.shape[-1]) # (Batch x T) x dim of s&a
+        r_t_2 = r_t_2.reshape(-1, r_t_2.shape[-1]) # (Batch x T) x 1
+
+        # Generate time index 
+        time_index = np.array([list(range(i*len_traj,
+                                            i*len_traj+self.size_segment)) for i in range(mb_size)])
+        time_index_2 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        time_index_1 = time_index + np.random.choice(len_traj-self.size_segment, size=mb_size, replace=True).reshape(-1,1)
+        
+        sa_t_1 = np.take(sa_t_1, time_index_1, axis=0) # Batch x size_seg x dim of s&a
+        r_t_1 = np.take(r_t_1, time_index_1, axis=0) # Batch x size_seg x 1
+        sa_t_2 = np.take(sa_t_2, time_index_2, axis=0) # Batch x size_seg x dim of s&a
+        r_t_2 = np.take(r_t_2, time_index_2, axis=0) # Batch x size_seg x 1
+                
+        return sa_t_1, sa_t_2, r_t_1, r_t_2
+
+    def get_aligned_1_queries_buffer_update(self, mb_size=20):
+        len_traj, max_len = len(self.inputs[0]), len(self.inputs)
+        img_t_1, img_t_2 = None, None
+        
+        if len(self.inputs[-1]) < len_traj:
+            max_len = max_len - 1
+        
+        # get train traj
+        train_inputs = np.array(self.inputs[:max_len])
+        train_targets = np.array(self.targets[:max_len])
+
+        train_inputs_1 = []
+        train_targets_1 = []
+        train_inputs_2 = []
+        train_targets_2 = []
+
+        for i in range(max_len):
+            if train_inputs[i][0][2] < 0:
+                train_inputs_1.append(train_inputs[i])
+                train_targets_1.append(train_targets[i])
+            else:
+                train_inputs_2.append(train_inputs[i])
+                train_targets_2.append(train_targets[i])
+
+        train_inputs_1 = np.array(train_inputs_1)
+        train_targets_1 = np.array(train_targets_1)
+        train_inputs_2 = np.array(train_inputs_2)
+        train_targets_2 = np.array(train_targets_2)
+
+        if self.cnt_1 == 0:
+            batch_index_2 = np.random.choice(len(train_inputs_1), size=mb_size, replace=True)
+            sa_t_2 = train_inputs_1[batch_index_2] # Batch x T x dim of s&a
+            r_t_2 = train_targets_1[batch_index_2] # Batch x T x 1
+        else:
+            sa_t_2 = self.succ_traj[:25]
+            r_t_2 = self.succ_reward[:25]
+        
+        batch_index_1 = np.random.choice(len(train_inputs_1), size=mb_size, replace=True)
+        sa_t_1 = train_inputs_1[batch_index_1] # Batch x T x dim of s&a
+        r_t_1 = train_targets_1[batch_index_1] # Batch x T x 1
                 
         sa_t_1 = sa_t_1.reshape(-1, sa_t_1.shape[-1]) # (Batch x T) x dim of s&a
         r_t_1 = r_t_1.reshape(-1, r_t_1.shape[-1]) # (Batch x T) x 1
@@ -460,7 +651,21 @@ class RewardModel:
  
         # equally preferable
         labels[margin_index] = -1 
+
+        # maintain successed trajectories
+        self.succ_traj = []
+        self.succ_reward = []
+        for i in range(len(labels)):
+            if labels[i] == 0:
+                self.succ_traj.append(sa_t_1[i])
+                self.succ_reward.append(r_t_1[i])
+            else:
+                self.succ_traj.append(sa_t_2[i])
+                self.succ_reward.append(r_t_2[i])
         
+        self.succ_traj = np.array(self.succ_traj)
+        self.succ_reward = np.array(self.succ_reward)
+
         return sa_t_1, sa_t_2, r_t_1, r_t_2, labels
     
     def kcenter_sampling(self):
@@ -585,10 +790,11 @@ class RewardModel:
         return len(labels)
     
     def uniform_sampling(self):
+        
         # get queries
         sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_queries(
             mb_size=self.mb_size)     
-           
+        
         # get labels
         sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
             sa_t_1, sa_t_2, r_t_1, r_t_2)
@@ -640,10 +846,100 @@ class RewardModel:
         
         return len(labels)
 
-    def goal_aligned_sampling(self):
+    def goal_aligned_2_sampling(self):
+
         # get queries
-        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_aligned_queries(
+        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_aligned_2_queries(
             mb_size=self.mb_size)
+
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+    
+    def goal_aligned_1_sampling(self):
+
+        # get queries
+        sa_t_1, sa_t_2, r_t_1, r_t_2 =  self.get_aligned_1_queries(
+            mb_size=self.mb_size)
+
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+
+    def goal_aligned_sampling(self):
+        sa_t_1_1, sa_t_2_1, r_t_1_1, r_t_2_1 =  self.get_aligned_1_queries(
+            mb_size=self.mb_size//2)
+        
+        sa_t_1_2, sa_t_2_2, r_t_1_2, r_t_2_2 =  self.get_aligned_2_queries(
+            mb_size=self.mb_size//2)
+
+        sa_t_1 = np.concatenate((sa_t_1_1, sa_t_1_2), axis=0)
+        sa_t_2 = np.concatenate((sa_t_2_1, sa_t_2_2), axis=0)
+        r_t_1 = np.concatenate((r_t_1_1, r_t_1_2), axis=0)
+        r_t_2 = np.concatenate((r_t_2_1, r_t_2_2), axis=0)
+
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+    
+    def goal_aligned_entropy_sampling(self):
+        sa_t_1_1, sa_t_2_1, r_t_1_1, r_t_2_1 =  self.get_aligned_1_queries(
+            mb_size=self.mb_size//2)
+        
+        sa_t_1_2, sa_t_2_2, r_t_1_2, r_t_2_2 =  self.get_aligned_2_queries(
+            mb_size=self.mb_size//2)
+
+        sa_t_1 = np.concatenate((sa_t_1_1, sa_t_1_2), axis=0)
+        sa_t_2 = np.concatenate((sa_t_2_1, sa_t_2_2), axis=0)
+        r_t_1 = np.concatenate((r_t_1_1, r_t_1_2), axis=0)
+        r_t_2 = np.concatenate((r_t_2_1, r_t_2_2), axis=0)
+        
+        entropy, _ = self.get_entropy(sa_t_1, sa_t_2)
+        
+        top_k_index = (-entropy).argsort()[:self.mb_size]
+        r_t_1, sa_t_1 = r_t_1[top_k_index], sa_t_1[top_k_index]
+        r_t_2, sa_t_2 = r_t_2[top_k_index], sa_t_2[top_k_index]
+        
+        # get labels
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(    
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
+    
+    def goal_aligned_sampling_buffer_update(self):
+        sa_t_1_1, sa_t_2_1, r_t_1_1, r_t_2_1 =  self.get_aligned_1_queries_buffer_update(
+            mb_size=self.mb_size//2)
+        
+        sa_t_1_2, sa_t_2_2, r_t_1_2, r_t_2_2 =  self.get_aligned_2_queries_buffer_update(
+            mb_size=self.mb_size//2)
+
+        sa_t_1 = np.concatenate((sa_t_1_1, sa_t_1_2), axis=0)
+        sa_t_2 = np.concatenate((sa_t_2_1, sa_t_2_2), axis=0)
+        r_t_1 = np.concatenate((r_t_1_1, r_t_1_2), axis=0)
+        r_t_2 = np.concatenate((r_t_2_1, r_t_2_2), axis=0)
+
+        sa_t_1, sa_t_2, r_t_1, r_t_2, labels = self.get_label(
+            sa_t_1, sa_t_2, r_t_1, r_t_2)
+        
+        if len(labels) > 0:
+            self.put_queries(sa_t_1, sa_t_2, labels)
+        
+        return len(labels)
     
     def train_reward(self):
         ensemble_losses = [[] for _ in range(self.de)]

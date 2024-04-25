@@ -150,7 +150,15 @@ class Workspace(object):
             elif self.cfg.feed_type == 5:
                 labeled_queries = self.reward_model.kcenter_entropy_sampling()
             elif self.cfg.feed_type == 6:
+                labeled_queries = self.reward_model.goal_aligned_2_sampling()
+            elif self.cfg.feed_type == 7:
+                labeled_queries = self.reward_model.goal_aligned_1_sampling()
+            elif self.cfg.feed_type == 8:
                 labeled_queries = self.reward_model.goal_aligned_sampling()
+            elif self.cfg.feed_type == 9:
+                labeled_queries = self.reward_model.goal_aligned_entropy_sampling()
+            elif self.cfg.feed_type == 10:
+                labeled_queries = self.reward_model.goal_aligned_sampling_buffer_update()
             else:
                 raise NotImplementedError
         
