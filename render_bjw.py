@@ -7,7 +7,7 @@ observation, info = env.reset()
 
 env.start_video_recorder()
 
-for _ in range(5):
+for _ in range(500):
     action = env.action_space.sample()  # agent policy that uses the observation and info
     observation, reward, terminated, truncated, info = env.step(action)
     env.render()
