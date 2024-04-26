@@ -10,9 +10,9 @@ activation: tanh
 num_seed_steps: 1000
 num_unsup_steps: 9000
 num_interact: 5000
-reward_lr: 0.00003
+reward_lr: 0.0003
 reward_batch: 50
-reward_update: 10
+reward_update: 50
 feed_type: 0
 reset_update: 100
 topK: 5
@@ -55,4 +55,4 @@ gradient_update: 1
 hydra:
     name: ${env}
     run:
-        dir: ./exp/large_2_1_sample${feed_type}_gradient_update${gradient_update}_reward_lr${reward_lr}/seed${seed}
+        dir: ./exp/large_2_1_sample${feed_type}_gradient_update${gradient_update}_reward_lr${reward_lr}_reward_batch${reward_batch}_reward_update${reward_update}/seed${seed}
