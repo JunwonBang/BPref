@@ -110,8 +110,8 @@ def make_env(cfg):
                      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, G, 1],
                      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
     
-    env = gym.make(cfg.env, maze_map=large_2_2)
-    env_eval = gym.make(cfg.env, maze_map=large_2_2_eval)
+    env = gym.make(cfg.env, maze_map=large_2_1)
+    env_eval = gym.make(cfg.env, maze_map=large_2_1_eval)
     env.reset(seed=cfg.seed)
     assert env.action_space.low.min() >= -1
     assert env.action_space.high.max() <= 1
