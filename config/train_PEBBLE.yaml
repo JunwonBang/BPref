@@ -9,10 +9,10 @@ segment: 50
 activation: tanh
 num_seed_steps: 1000
 num_unsup_steps: 9000
-num_interact: 5000
+num_interact: 20000
 reward_lr: 0.0003
 reward_batch: 50
-reward_update: 50
+reward_update: 10
 feed_type: 0
 reset_update: 100
 topK: 5
@@ -29,7 +29,7 @@ teacher_eps_equal: 0
 # scheduling
 reward_schedule: 0
 
-num_train_steps: 1e6
+num_train_steps: 4e6
 replay_buffer_capacity: ${num_train_steps}
 
 # evaluation config
@@ -55,4 +55,4 @@ gradient_update: 1
 hydra:
     name: ${env}
     run:
-        dir: ./exp/large_2_1_sample${feed_type}_gradient_update${gradient_update}_reward_lr${reward_lr}_reward_batch${reward_batch}_reward_update${reward_update}/seed${seed}
+        dir: ./exp/large_2_1_sample${feed_type}_num_interact${num_interact}_num_train_steps${num_train_steps}/seed${seed}
