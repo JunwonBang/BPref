@@ -9,8 +9,8 @@ segment: 50
 activation: tanh
 num_seed_steps: 1000
 num_unsup_steps: 9000
-num_interact: 5000
-reward_lr: 0.00003
+num_interact: 10000
+reward_lr: 0.0003
 reward_batch: 50
 reward_update: 10
 feed_type: 0
@@ -29,7 +29,7 @@ teacher_eps_equal: 0
 # scheduling
 reward_schedule: 0
 
-num_train_steps: 1e6
+num_train_steps: 2e6
 replay_buffer_capacity: ${num_train_steps}
 
 # evaluation config
@@ -49,11 +49,11 @@ seed: 1
 
 # Environment
 # Kitchen
-env: PointMaze_UMaze-v3
+env: FrankaKitchen-v1
 gradient_update: 1
 
 # hydra configuration
 hydra:
     name: ${env}
     run:
-        dir: ./exp/large_2_1_sample${feed_type}_gradient_update${gradient_update}_reward_lr${reward_lr}/seed${seed}
+        dir: ./exp/FrankaKitchen-v1_sample${feed_type}/seed${seed}

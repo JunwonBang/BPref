@@ -22,6 +22,8 @@ import hydra
 from gymnasium.wrappers.flatten_observation import FlattenObservation
 from gymnasium.utils.step_api_compatibility import convert_to_done_step_api
 
+import gymnasium as gym
+
 class Workspace(object):
     def __init__(self, cfg):
         self.work_dir = os.getcwd()
@@ -87,9 +89,12 @@ class Workspace(object):
         average_episode_reward = 0
         average_true_episode_reward = 0
         success_rate = 0
+        video_cnt = 0
         
         for episode in range(self.cfg.num_eval_episodes):
+            env_eval = gym.wrappers.RecordVideo(env=env_eval, video_folder="./video", name_prefix="test-video%d"%video_cnt, episode_trigger=lambda x: x % 2 == 0)
             obs, info = self.env_eval.reset()
+            self.env_eval.start_video_recorder()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -111,6 +116,9 @@ class Workspace(object):
             average_true_episode_reward += true_episode_reward
             if self.log_success:
                 success_rate += episode_success
+                
+            self.env_eval.close_video_recorder()
+            video_cnt += 1
             
         average_episode_reward /= self.cfg.num_eval_episodes
         average_true_episode_reward /= self.cfg.num_eval_episodes
@@ -306,6 +314,7 @@ class Workspace(object):
                                             gradient_update=1, K=self.cfg.topK)
                 
             next_obs, reward, done, extra = convert_to_done_step_api(self.env.step(action))
+            print(convert_to_done_step_api(self.env.step(action)))
             reward_hat = self.reward_model.r_hat(np.concatenate([obs, action], axis=-1))
 
             # allow infinite bootstrap

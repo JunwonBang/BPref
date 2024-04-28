@@ -1,7 +1,7 @@
 import gymnasium as gym
-
+cnt = 0
 env = gym.make('FrankaKitchen-v1', tasks_to_complete=['microwave', 'kettle'], render_mode='rgb_array') # change the render mode
-env = gym.wrappers.RecordVideo(env=env, video_folder="./video", name_prefix="test-video", episode_trigger=lambda x: x % 2 == 0)
+env = gym.wrappers.RecordVideo(env=env, video_folder="./video", name_prefix="test-video%d"%cnt, episode_trigger=lambda x: x % 2 == 0)
 
 observation, info = env.reset()
 
