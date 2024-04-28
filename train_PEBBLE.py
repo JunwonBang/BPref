@@ -92,7 +92,7 @@ class Workspace(object):
         video_cnt = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            env_eval = gym.wrappers.RecordVideo(env=env_eval, video_folder="./video", name_prefix="test-video%d"%video_cnt, episode_trigger=lambda x: x % 2 == 0)
+            self.env_eval = gym.wrappers.RecordVideo(env=self.env_eval, video_folder="./video", name_prefix="test-video%d"%video_cnt, episode_trigger=lambda x: x % 2 == 0)
             obs, info = self.env_eval.reset()
             self.env_eval.start_video_recorder()
             self.agent.reset()
@@ -314,7 +314,6 @@ class Workspace(object):
                                             gradient_update=1, K=self.cfg.topK)
                 
             next_obs, reward, done, extra = convert_to_done_step_api(self.env.step(action))
-            print(convert_to_done_step_api(self.env.step(action)))
             reward_hat = self.reward_model.r_hat(np.concatenate([obs, action], axis=-1))
 
             # allow infinite bootstrap
@@ -324,7 +323,7 @@ class Workspace(object):
             true_episode_reward += reward
             
             if self.log_success:
-                episode_success = max(episode_success, extra['success'])
+                episode_success = episode_success
                 
             # adding data to the reward training data
             self.reward_model.add_data(obs, action, reward, done)
