@@ -55,4 +55,4 @@ gradient_update: 1
 hydra:
     name: ${env}
     run:
-        dir: ./exp/large_2_1_sample${feed_type}_num_interact${num_interact}_num_train_steps${num_train_steps}/seed${seed}
+        dir: ./exp/large_2_1_sample${feed_type}_reward_lr${reward_lr}_reward__num_interact${num_interact}_num_train_steps${num_train_steps}/seed${seed}
