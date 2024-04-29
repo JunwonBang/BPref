@@ -316,7 +316,6 @@ class RewardModel:
     def get_queries(self, mb_size=20):
         len_traj, max_len = len(self.inputs[0]), len(self.inputs)
         img_t_1, img_t_2 = None, None
-        
         if len(self.inputs[-1]) < len_traj:
             max_len = max_len - 1
         
