@@ -96,7 +96,7 @@ class Workspace(object):
             while not done:
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
-                obs, reward, done, extra = convert_to_done_step_api(self.env.step(action))
+                obs, reward, done, extra = self.env.step(action)
                 
                 episode_reward += reward
                 true_episode_reward += reward
@@ -301,7 +301,7 @@ class Workspace(object):
                 self.agent.update_state_ent(self.replay_buffer, self.logger, self.step, 
                                             gradient_update=1, K=self.cfg.topK)
                 
-            next_obs, reward, done, extra = convert_to_done_step_api(self.env.step(action))
+            next_obs, reward, done, extra = self.env.step(action)
             reward_hat = self.reward_model.r_hat(np.concatenate([obs, action], axis=-1))
 
             # allow infinite bootstrap
