@@ -110,7 +110,7 @@ class Workspace(object):
                 episode_reward += reward
                 true_episode_reward += reward
                 if self.log_success:
-                    episode_success = max(episode_success, extra['success'])
+                    episode_success = episode_success
                 
             average_episode_reward += episode_reward
             average_true_episode_reward += true_episode_reward
