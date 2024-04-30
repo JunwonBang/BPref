@@ -106,6 +106,7 @@ class Workspace(object):
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
                 obs, reward, done, extra = convert_to_done_step_api(self.env_eval.step(action))
+                self.env_eval.render()
                 
                 episode_reward += reward
                 true_episode_reward += reward
