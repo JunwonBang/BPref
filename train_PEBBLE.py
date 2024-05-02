@@ -47,6 +47,13 @@ class Workspace(object):
         
         self.env = FlattenObservation(self.env)
         self.env_eval = FlattenObservation(self.env_eval)
+        self.env.reset(seed=cfg.seed)
+        self.env_eval.reset(seed=cfg.seed + 1234)
+        self.env.action_space.seed(seed=cfg.seed)
+        self.env_eval.action_space.seed(seed=cfg.seed + 1234)
+        self.env.observation_space.seed(seed=cfg.seed)
+        self.env_eval.observation_space.seed(seed=cfg.seed + 1234)
+
         cfg.agent.params.obs_dim = self.env.observation_space.shape[0]
         cfg.agent.params.action_dim = self.env.action_space.shape[0]
         cfg.agent.params.action_range = [
