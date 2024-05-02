@@ -89,12 +89,9 @@ class Workspace(object):
         average_episode_reward = 0
         average_true_episode_reward = 0
         success_rate = 0
-        video_cnt = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            self.env_eval = gym.wrappers.RecordVideo(env=self.env_eval, video_folder="./video", name_prefix="test-video%d"%video_cnt, episode_trigger=lambda x: x % 2 == 0)
             obs, info = self.env_eval.reset()
-            self.env_eval.start_video_recorder()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -106,7 +103,6 @@ class Workspace(object):
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
                 obs, reward, done, extra = convert_to_done_step_api(self.env_eval.step(action))
-                self.env_eval.render()
                 
                 episode_reward += reward
                 true_episode_reward += reward
@@ -117,9 +113,6 @@ class Workspace(object):
             average_true_episode_reward += true_episode_reward
             if self.log_success:
                 success_rate += episode_success
-                
-            self.env_eval.close_video_recorder()
-            video_cnt += 1
             
         average_episode_reward /= self.cfg.num_eval_episodes
         average_true_episode_reward /= self.cfg.num_eval_episodes
