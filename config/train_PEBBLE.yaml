@@ -55,4 +55,4 @@ gradient_update: 1
 hydra:
     name: ${env}
     run:
-        dir: ./exp/large_2_1_test_omh2_sample${feed_type}_gradient_update${gradient_update}/seed${seed}
+        dir: ./exp/large_2_1_test_sample${feed_type}_gradient_update${gradient_update}/seed${seed}
