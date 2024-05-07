@@ -22,6 +22,7 @@ def make_env(cfg):
     env = gym.make(cfg.env, tasks_to_complete=['microwave', 'kettle'])
     env_eval = gym.make(cfg.env, tasks_to_complete=['kettle'], render_mode='rgb_array')
     env.reset(seed=cfg.seed)
+    env_eval.reset(seed=cfg.seed)
     assert env.action_space.low.min() >= -1
     assert env.action_space.high.max() <= 1
 
