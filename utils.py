@@ -20,7 +20,7 @@ from torch import distributions as pyd
 def make_env(cfg):
     """Helper function to create dm_control environment""" 
     env = gym.make(cfg.env, tasks_to_complete=['microwave', 'kettle'])
-    env_eval = gym.make(cfg.env, tasks_to_complete=['microwave', 'kettle'], render_mode='rgb_array')
+    env_eval = gym.make(cfg.env, tasks_to_complete=['kettle'], render_mode='rgb_array')
     env.reset(seed=cfg.seed)
     assert env.action_space.low.min() >= -1
     assert env.action_space.high.max() <= 1
