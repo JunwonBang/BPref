@@ -21,6 +21,8 @@ import hydra
 
 from gymnasium.utils.step_api_compatibility import convert_to_done_step_api
 
+from PIL import Image
+
 class Workspace(object):
     def __init__(self, cfg):
         self.work_dir = os.getcwd()
@@ -307,15 +309,20 @@ class Workspace(object):
 
             # allow infinite bootstrap
             done = float(done)
-            done_no_max = 0 if episode_step + 1 == self.env.spec.max_episode_steps else done
+            done_no_max = 0 if episode_step + 1 == self.env._max_episode_steps else done
             episode_reward += reward_hat
             true_episode_reward += reward
             
             if self.log_success:
                 episode_success = max(episode_success, extra['success'])
-                
+            self.env.goal = np.array([0.7, 0.84, 0.02])
+            print(self.env.goal)
+            img_array = self.env.render()
+            img = Image.fromarray(img_array, 'RGB')
+            img = img.save('render_bjw.png')
+            exit()
             # adding data to the reward training data
-            self.reward_model.add_data(obs, action, reward, done)
+            self.reward_model.add_data(obs, action, reward, done, self.env.goal)
             self.replay_buffer.add(
                 obs, action, reward_hat, 
                 next_obs, done, done_no_max)
