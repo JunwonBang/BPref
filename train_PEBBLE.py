@@ -19,6 +19,8 @@ from collections import deque
 import utils
 import hydra
 
+from gymnasium.utils.step_api_compatibility import convert_to_done_step_api
+
 class Workspace(object):
     def __init__(self, cfg):
         self.work_dir = os.getcwd()
@@ -95,12 +97,12 @@ class Workspace(object):
             while not done:
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
-                obs, reward, done, extra = self.env_eval.step(action)
+                obs, reward, done, extra = convert_to_done_step_api(self.env_eval.step(action))
                 
                 episode_reward += reward
                 true_episode_reward += reward
                 if self.log_success:
-                    episode_success = episode_success
+                    episode_success = max(episode_success, extra['success'])
                 
             average_episode_reward += episode_reward
             average_true_episode_reward += true_episode_reward
@@ -300,7 +302,7 @@ class Workspace(object):
                 self.agent.update_state_ent(self.replay_buffer, self.logger, self.step, 
                                             gradient_update=1, K=self.cfg.topK)
             
-            next_obs, reward, done, extra = self.env.step(action)
+            next_obs, reward, done, extra = convert_to_done_step_api(self.env.step(action))
             reward_hat = self.reward_model.r_hat(np.concatenate([obs, action], axis=-1))
 
             # allow infinite bootstrap
@@ -310,7 +312,7 @@ class Workspace(object):
             true_episode_reward += reward
             
             if self.log_success:
-                episode_success = episode_success
+                episode_success = max(episode_success, extra['success'])
                 
             # adding data to the reward training data
             self.reward_model.add_data(obs, action, reward, done)
