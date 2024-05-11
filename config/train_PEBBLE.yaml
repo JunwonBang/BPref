@@ -5,26 +5,26 @@ defaults:
 experiment: PEBBLE
 
 # reward learning
-segment: 10
+segment: 50
 activation: tanh
 num_seed_steps: 1000
 num_unsup_steps: 9000
-num_interact: 4800
+num_interact: 5000
 reward_lr: 0.0003
-reward_batch: 50
+reward_batch: 100
 reward_update: 10
 feed_type: 0
 reset_update: 100
 topK: 5
 ensemble_size: 3
-max_feedback: 50000
+max_feedback: 20000
 large_batch: 10
 label_margin: 0.0
 teacher_beta: -1
 teacher_gamma: 1
 teacher_eps_mistake: 0
 teacher_eps_skip: 0
-teacher_eps_equal: 0
+teacher_eps_equal: 0.1
 
 # scheduling
 reward_schedule: 0
@@ -55,4 +55,4 @@ gradient_update: 1
 hydra:
     name: ${env}
     run:
-        dir: ./exp/${env}_sample${feed_type}_seed${seed}_multi_goal
+        dir: ./exp/${env}/sample${feed_type}/seed${seed}

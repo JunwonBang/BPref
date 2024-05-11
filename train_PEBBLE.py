@@ -33,14 +33,14 @@ class Workspace(object):
 
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
-        self.log_success = False
+        self.log_success = True
         
         # make env
         if 'metaworld' in cfg.env:
             self.env = utils.make_metaworld_env(cfg)
             self.log_success = True
         else:
-            self.env = utils.make_env(cfg)
+            self.env, self.env_eval = utils.make_env(cfg)
         
         cfg.agent.params.obs_dim = self.env.observation_space.shape[0]
         cfg.agent.params.action_dim = self.env.action_space.shape[0]
@@ -84,8 +84,7 @@ class Workspace(object):
         success_rate = 0
         
         for episode in range(self.cfg.num_eval_episodes):
-            obs, info = self.env.reset()
-            self.env.goal = np.array([0.6, 0.7, 0.07])
+            obs, info = self.env_eval.reset()
             self.agent.reset()
             done = False
             episode_reward = 0
@@ -96,12 +95,12 @@ class Workspace(object):
             while not done:
                 with utils.eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
-                obs, reward, done, extra = self.env.step(action)
+                obs, reward, done, extra = self.env_eval.step(action)
                 
                 episode_reward += reward
                 true_episode_reward += reward
                 if self.log_success:
-                    episode_success = max(episode_success, extra['success'])
+                    episode_success = episode_success
                 
             average_episode_reward += episode_reward
             average_true_episode_reward += true_episode_reward
@@ -146,9 +145,15 @@ class Workspace(object):
             elif self.cfg.feed_type == 5:
                 labeled_queries = self.reward_model.kcenter_entropy_sampling()
             elif self.cfg.feed_type == 6:
-                labeled_queries = self.reward_model.entropy_reverse_sampling()
+                labeled_queries = self.reward_model.goal_aligned_2_sampling()
             elif self.cfg.feed_type == 7:
-                labeled_queries = self.reward_model.goal_anti_aligned_sampling()
+                labeled_queries = self.reward_model.goal_aligned_1_sampling()
+            elif self.cfg.feed_type == 8:
+                labeled_queries = self.reward_model.goal_aligned_sampling()
+            elif self.cfg.feed_type == 9:
+                labeled_queries = self.reward_model.goal_aligned_entropy_sampling()
+            elif self.cfg.feed_type == 10:
+                labeled_queries = self.reward_model.goal_aligned_sampling_buffer_update()
             else:
                 raise NotImplementedError
         
@@ -206,12 +211,6 @@ class Workspace(object):
                         self.step)
                 
                 obs, info = self.env.reset()
-
-                if int(time.strftime('%S'))%2 == 0:
-                    self.env.goal = np.array([-0.3, 0.5, 0.07])
-                else:
-                    self.env.goal = np.array([0.6, 0.7, 0.07])
-                    
                 self.agent.reset()
                 done = False
                 episode_reward = 0
@@ -245,10 +244,10 @@ class Workspace(object):
                 self.reward_model.change_batch(frac)
                 
                 # update margin --> not necessary / will be updated soon
-                new_margin = np.mean(avg_train_true_return) * (self.cfg.segment / self.env._max_episode_steps)
+                new_margin = np.mean(avg_train_true_return) * (self.cfg.segment / self.env.spec.max_episode_steps)
                 self.reward_model.set_teacher_thres_skip(new_margin)
                 self.reward_model.set_teacher_thres_equal(new_margin)
-
+                
                 # first learn reward
                 self.learn_reward(first_flag=1)
                 
@@ -282,7 +281,7 @@ class Workspace(object):
                         self.reward_model.change_batch(frac)
                         
                         # update margin --> not necessary / will be updated soon
-                        new_margin = np.mean(avg_train_true_return) * (self.cfg.segment / self.env._max_episode_steps)
+                        new_margin = np.mean(avg_train_true_return) * (self.cfg.segment / self.env.spec.max_episode_steps)
                         self.reward_model.set_teacher_thres_skip(new_margin * self.cfg.teacher_eps_skip)
                         self.reward_model.set_teacher_thres_equal(new_margin * self.cfg.teacher_eps_equal)
                         
@@ -300,21 +299,21 @@ class Workspace(object):
             elif self.step > self.cfg.num_seed_steps:
                 self.agent.update_state_ent(self.replay_buffer, self.logger, self.step, 
                                             gradient_update=1, K=self.cfg.topK)
-                
+            
             next_obs, reward, done, extra = self.env.step(action)
             reward_hat = self.reward_model.r_hat(np.concatenate([obs, action], axis=-1))
 
             # allow infinite bootstrap
             done = float(done)
-            done_no_max = 0 if episode_step + 1 == self.env._max_episode_steps else done
+            done_no_max = 0 if episode_step + 1 == self.env.spec.max_episode_steps else done
             episode_reward += reward_hat
             true_episode_reward += reward
             
             if self.log_success:
-                episode_success = max(episode_success, extra['success'])
+                episode_success = episode_success
                 
             # adding data to the reward training data
-            self.reward_model.add_data(obs, action, reward, done, self.env.goal)
+            self.reward_model.add_data(obs, action, reward, done)
             self.replay_buffer.add(
                 obs, action, reward_hat, 
                 next_obs, done, done_no_max)
